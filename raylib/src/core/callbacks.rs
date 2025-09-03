@@ -112,11 +112,11 @@ extern "C" fn custom_load_file_data_callback(path: *const c_char, size: *mut c_i
     }
 }
 
-extern "C" fn custom_save_file_text_callback(a: *const c_char, b: *mut c_char) -> bool {
+extern "C" fn custom_save_file_text_callback(a: *const c_char, b: *const c_char) -> bool {
     let save_file_text = save_file_text_callback().unwrap();
     let a = unsafe { CStr::from_ptr(a) };
     let b = unsafe { CStr::from_ptr(b) };
-    return save_file_text(a.to_str().unwrap(), b.to_str().unwrap());
+    save_file_text(a.to_str().unwrap(), b.to_str().unwrap())
 }
 extern "C" fn custom_load_file_text_callback(a: *const c_char) -> *mut c_char {
     let load_file_text = load_file_text_callback().unwrap();
