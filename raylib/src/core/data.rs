@@ -40,12 +40,6 @@ pub fn compress_data(data: &[u8]) -> Result<DataBuf<[u8]>, CompressionError> {
 /// let data = decompress_data(input).unwrap();
 /// assert_eq!(data.as_ref(), expected);
 /// ```
-/// ^^^Test executable failed (exit status: 102).
-/// TODO: Perhaps related to upstream issue introduced here:
-///  https://github.com/raysan5/raylib/commit/1777da9056ac84bb7410392e103c6a0964570d67
-///  Ray forgot to sinflate the data0 instead of data (NULL)... in the update, unsure if it was reviewed,
-///  updated on discord, but keeping note here to fix before any PR merge
-
 pub fn decompress_data(data: &[u8]) -> Result<DataBuf<[u8]>, CompressionError> {
     #[cfg(debug_assertions)]
     println!("{:?}", data.len());
