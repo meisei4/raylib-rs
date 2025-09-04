@@ -250,6 +250,7 @@ impl RaylibHandle {
         chars: Option<&str>,
         sdf: i32,
     ) -> Option<RSliceGlyphInfo> {
+        let mut glyph_count_out: i32 = 0;
         unsafe {
             let ci_arr_ptr = match chars {
                 Some(c) => {
@@ -261,6 +262,7 @@ impl RaylibHandle {
                         co.0.as_mut_ptr(),
                         co.0.len().try_into().expect(TOO_MANY_CODEPOINTS),
                         sdf,
+                        &mut glyph_count_out,
                     )
                 }
                 None => ffi::LoadFontData(
@@ -270,6 +272,7 @@ impl RaylibHandle {
                     std::ptr::null_mut(),
                     0,
                     sdf,
+                    &mut glyph_count_out,
                 ),
             };
             let ci_size = if let Some(c) = chars { c.len() } else { 95 }; // raylib assumes 95 if none given
