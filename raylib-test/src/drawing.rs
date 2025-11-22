@@ -219,6 +219,6 @@ mod draw_test {
         let mesh = Mesh::gen_mesh_sphere(&thread, 25.0, 5, 5);
         let material = d.load_material_default(&thread);
 
-        d.draw_mesh(mesh, material, Matrix::translate(0.0, 0.0, 0.0));
+        d.draw_mesh(&mesh, &material, Matrix::translate(0.0, 0.0, 0.0));
     }
 }

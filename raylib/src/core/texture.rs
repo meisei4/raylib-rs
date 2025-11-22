@@ -1268,7 +1268,7 @@ impl Texture2D {
     /// Fairly sure this would never fail. If it does wrap in result.
     #[inline]
     #[must_use]
-    fn load_image(&self) -> Result<Image, InvalidImageError> {
+    pub fn load_image(&self) -> Result<Image, InvalidImageError> {
         let i = unsafe { ffi::LoadImageFromTexture(self.clone_raw()) };
         if i.data.is_null() {
             return Err(InvalidImageError::NullDataFromTexture);

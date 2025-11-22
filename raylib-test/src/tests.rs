@@ -99,6 +99,40 @@ pub fn test_runner(tests: &[&dyn Testable]) {
         None => return,
     };
 
+    let matches_filter = |name: &str| -> bool {
+        if !opts.filters.is_empty() {
+            let mut matched = false;
+
+            if opts.filter_exact {
+                for f in &opts.filters {
+                    if name == f {
+                        matched = true;
+                        break;
+                    }
+                }
+            } else {
+                for f in &opts.filters {
+                    if name.contains(f) {
+                        matched = true;
+                        break;
+                    }
+                }
+            }
+
+            if !matched {
+                return false;
+            }
+        }
+
+        for s in &opts.skip {
+            if name.contains(s) {
+                return false;
+            }
+        }
+
+        true
+    };
+
     let mut par_test: Vec<TestDescAndFn> = Vec::new();
     let mut seq_test: Vec<&RayTest> = Vec::new();
     let mut draw_test: Vec<&RayDrawTest> = Vec::new();
@@ -131,10 +165,16 @@ pub fn test_runner(tests: &[&dyn Testable]) {
     // Run seq test manually
     // TODO properly handle test functions
     for t in seq_test {
+        if !matches_filter(t.name) {
+            continue;
+        }
         if opts.nocapture {
-            println!("running {}", t.name);
+            println!("\nrunning: {}", t.name);
         }
         (t.test)(&thread);
+        if opts.nocapture {
+            println!("completed: {}\n", t.name);
+        }
     }
 
     let mut handle = TEST_HANDLE.write().unwrap();
@@ -147,6 +187,9 @@ pub fn test_runner(tests: &[&dyn Testable]) {
         d.clear_background(Color::WHITE);
     }
     for t in &draw_test {
+        if !matches_filter(t.name) {
+            continue;
+        }
         if opts.nocapture {
             println!("running draw test: {}", t.name);
         }
@@ -170,6 +213,9 @@ pub fn test_runner(tests: &[&dyn Testable]) {
         90.0,
     );
     for t in &draw_test_3d {
+        if !matches_filter(t.name) {
+            continue;
+        }
         if opts.nocapture {
             println!("running draw test: {}", t.name);
         }
@@ -221,7 +267,7 @@ macro_rules! ray_test {
         #[test_case]
         #[allow(non_upper_case_globals)]
         static $name: RayTest = RayTest {
-            name: stringify!($name),
+            name: concat!(module_path!(), "::", stringify!($name)),
             test: $name,
         };
     };

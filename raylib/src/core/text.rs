@@ -347,7 +347,7 @@ impl Font {
 
     /// Export font as code file, returns true on success
     #[must_use]
-    fn export_font_as_code<A>(&self, filename: A) -> bool
+    pub fn export_font_as_code<A>(&self, filename: A) -> bool
     where
         A: Into<OsString>,
     {

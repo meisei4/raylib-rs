@@ -13,7 +13,7 @@ use crate::{MintMatrix, MintVec2};
 use crate::{MintVec3, ffi};
 use std::ffi::CString;
 use std::{convert::AsRef, marker::PhantomData};
-
+use crate::text::Font;
 use super::shaders::Shader;
 
 /// Seems like all draw commands must be issued from the main thread
@@ -1077,13 +1077,13 @@ pub trait RaylibDraw {
     #[inline]
     fn draw_texture(
         &mut self,
-        texture: impl AsRef<ffi::Texture2D>,
+        texture: &Texture2D,
         x: i32,
         y: i32,
         tint: impl Into<ffi::Color>,
     ) {
         unsafe {
-            ffi::DrawTexture(*texture.as_ref(), x, y, tint.into());
+            ffi::DrawTexture(texture.clone_raw(), x, y, tint.into());
         }
     }
 
@@ -1244,7 +1244,7 @@ pub trait RaylibDraw {
     #[inline]
     fn draw_text_ex(
         &mut self,
-        font: impl AsRef<ffi::Font>,
+        font: &Font,
         text: &str,
         position: impl Into<MintVec2>,
         font_size: f32,
@@ -1254,7 +1254,7 @@ pub trait RaylibDraw {
         let c_text = CString::new(text).unwrap();
         unsafe {
             ffi::DrawTextEx(
-                *font.as_ref(),
+                font.clone_raw(),
                 c_text.as_ptr(),
                 position.into(),
                 font_size,
