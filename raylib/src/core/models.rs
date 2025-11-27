@@ -358,6 +358,8 @@ impl RaylibMesh for WeakMesh {}
 impl RaylibMesh for Mesh {}
 pub struct Triangles<'a> {
     grouping: TriangleGrouping<'a>,
+    indices: Option<&'a [u16]>,
+    vertex_count: usize,
 }
 
 enum TriangleGrouping<'a> {
@@ -404,6 +406,62 @@ impl<'a> ExactSizeIterator for Triangles<'a> {
         }
     }
 }
+
+pub struct VertexIter<'a> {
+    indices: Option<&'a [u16]>,
+    vertex_count: usize,
+    cursor: usize,
+    visited: Option<Vec<bool>>,
+}
+
+impl<'a> Triangles<'a> {
+    #[inline]
+    pub fn iter_vertices(&self) -> VertexIter<'a> {
+        let visited = match self.indices {
+            Some(_) => Some(vec![false; self.vertex_count]),
+            None => None,
+        };
+
+        VertexIter {
+            indices: self.indices,
+            vertex_count: self.vertex_count,
+            cursor: 0,
+            visited,
+        }
+    }
+}
+
+impl<'a> Iterator for VertexIter<'a> {
+    type Item = usize;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        match (self.indices, &mut self.visited) {
+            (Some(idx), Some(visited)) => {
+                while self.cursor < idx.len() {
+                    let i = idx[self.cursor] as usize;
+                    self.cursor += 1;
+                    if !visited[i] {
+                        visited[i] = true;
+                        return Some(i);
+                    }
+                }
+                None
+            }
+            (None, None) => {
+                if self.cursor < self.vertex_count {
+                    let i = self.cursor;
+                    self.cursor += 1;
+                    Some(i)
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        }
+    }
+}
+
 
 impl Mesh {
     pub unsafe fn make_weak(self) -> WeakMesh {
@@ -484,12 +542,13 @@ pub trait RaylibMesh: AsRef<ffi::Mesh> + AsMut<ffi::Mesh> {
     /// - Does not allow for processing trailing vertices (e.g. vertices outside a multiple of 3)
     #[inline]
     fn vertex_count(&self) -> usize {
-        if let Some(indices) = self.indices() {
-            // NOTE: if caching initial vertex count (for resize), potentially cache stuff here as well
-            indices.iter().max().map(|&m| (m + 1) as usize).unwrap_or(0)
-        } else {
-            (self.as_ref().triangleCount as usize) * 3
-        }
+        return self.as_ref().vertexCount as usize;
+        // if let Some(indices) = self.indices() {
+        //     // NOTE: if caching initial vertex count (for resize), potentially cache stuff here as well
+        //     indices.iter().max().map(|&m| (m + 1) as usize).unwrap_or(0)
+        // } else {
+        //     (self.as_ref().triangleCount as usize) * 3
+        // }
     }
     /// Safely update the vertex count - validates the mesh after updating to ensure consistency with
     /// triangle count and index buffer
@@ -738,9 +797,12 @@ pub trait RaylibMesh: AsRef<ffi::Mesh> + AsMut<ffi::Mesh> {
 
     #[inline]
     fn triangles(&self) -> Triangles<'_> {
+        let vertex_count = self.as_ref().vertexCount as usize;
         if let Some(indices) = self.indices() {
             Triangles {
                 grouping: TriangleGrouping::Indexed(indices.chunks_exact(3)),
+                indices: Some(indices),
+                vertex_count,
             }
         } else {
             let clamped = (self.as_ref().triangleCount as usize) * 3;
@@ -749,6 +811,8 @@ pub trait RaylibMesh: AsRef<ffi::Mesh> + AsMut<ffi::Mesh> {
                     next: 0,
                     last: clamped,
                 },
+                indices: None,
+                vertex_count: clamped,
             }
         }
     }
