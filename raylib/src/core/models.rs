@@ -661,6 +661,13 @@ pub trait RaylibMesh: AsRef<ffi::Mesh> + AsMut<ffi::Mesh> {
             std::slice::from_raw_parts_mut(normals, self.vertex_count())
         })
     }
+    fn init_normals_mut(&mut self) -> Result<&mut [Vector3], AllocationError> {
+        if self.as_ref().normals.is_null() {
+            let default_normals = slice_to_rl_ptr::<Vector3, Vector3>(Some(&vec![Vector3::new(0.0, 0.0, 1.0); self.vertex_count()]))?;
+            self.as_mut().normals = default_normals.cast();
+        }
+        Ok(self.normals_mut().expect("normals must be set"))
+    }
     /// Vertex colors (RGBA - 4 components per vertex) (shader-location = 3)
     #[inline]
     #[must_use]
