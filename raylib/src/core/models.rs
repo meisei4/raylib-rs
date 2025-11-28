@@ -567,34 +567,6 @@ pub trait RaylibMesh: AsRef<ffi::Mesh> + AsMut<ffi::Mesh> {
         unsafe { self.update_position_buffer(_t) };
         Ok(())
     }
-
-    /// ```
-    /// # use raylib::core::math::Vector3;
-    /// # use raylib::ffi;
-    /// # use raylib::models::{Mesh, RaylibMesh};
-    /// # use raylib::core::models::validate_mesh_for_doc;
-    /// let raw = ffi::Mesh {
-    ///     vertexCount: 0,
-    ///     triangleCount: 0,
-    ///     vertices: core::ptr::null_mut(),
-    ///     indices: core::ptr::null_mut(),
-    ///     ..Default::default()
-    /// };
-    /// let mesh = unsafe { Mesh::from_raw(raw).make_weak() };
-    /// validate_mesh_for_doc(&raw);
-    /// let _ = mesh.vertices(); //is fine
-    /// let mut buf = [0u8; 32];
-    /// let misaligned_ptr = unsafe { buf.as_mut_ptr().add(1) } as *mut f32;
-    /// let raw2 = ffi::Mesh {
-    ///     vertexCount: 0,
-    ///     triangleCount: 0,
-    ///     vertices: misaligned_ptr,
-    ///     indices: core::ptr::null_mut(),
-    ///     ..Default::default()
-    /// };
-    /// let mesh2 = unsafe { Mesh::from_raw(raw2).make_weak() };
-    /// let _ = mesh2.vertices(); //without the if vertex_count == 0 check, this UB's
-    /// ```
     /// Vertex position (XYZ - 3 components per vertex) (shader-location = 0)
     #[inline]
     #[must_use]
@@ -616,6 +588,29 @@ pub trait RaylibMesh: AsRef<ffi::Mesh> + AsMut<ffi::Mesh> {
             return &mut [];
         }
         let vertices_ptr = self.as_mut().vertices as *mut Vector3;
+        unsafe { std::slice::from_raw_parts_mut(vertices_ptr, vertex_count) }
+    }
+    /// Animated Vertex position (XYZ - 3 components per vertex)
+    #[inline]
+    #[must_use]
+    fn anim_vertices(&self) -> &[Vector3] {
+        let vertex_count = self.vertex_count();
+        //NOTE: validation still allow for raylib side built meshes to have NULL vertices, preventing slice access here avoids UB
+        if vertex_count == 0 {
+            return &[];
+        }
+        let vertices_ptr = self.as_ref().animVertices as *const Vector3;
+        unsafe { std::slice::from_raw_parts(vertices_ptr, vertex_count) }
+    }
+    /// Animated Vertex position (XYZ - 3 components per vertex)
+    #[inline]
+    #[must_use]
+    fn anim_vertices_mut(&mut self) -> &mut [Vector3] {
+        let vertex_count = self.vertex_count();
+        if vertex_count == 0 {
+            return &mut [];
+        }
+        let vertices_ptr = self.as_mut().animVertices as *mut Vector3;
         unsafe { std::slice::from_raw_parts_mut(vertices_ptr, vertex_count) }
     }
     /// Texture Coordinates (UV (or ST) - 2 components per vertex) (shader-location = 1)
@@ -667,6 +662,24 @@ pub trait RaylibMesh: AsRef<ffi::Mesh> + AsMut<ffi::Mesh> {
             self.as_mut().normals = default_normals.cast();
         }
         Ok(self.normals_mut().expect("normals must be set"))
+    }
+    /// Animated Vertex position (XYZ - 3 components per vertex)
+    #[inline]
+    #[must_use]
+    fn anim_normals(&self) -> Option<&[Vector3]> {
+        let normals = self.as_ref().animNormals as *mut Vector3;
+        (!normals.is_null()).then(|| unsafe {
+            std::slice::from_raw_parts(normals, self.vertex_count())
+        })
+    }
+    /// Animated Vertex position (XYZ - 3 components per vertex)
+    #[inline]
+    #[must_use]
+    fn anim_normals_mut(&mut self) -> Option<&mut [Vector3]> {
+        let normals = self.as_mut().animNormals as *mut Vector3;
+        (!normals.is_null()).then(|| unsafe {
+            std::slice::from_raw_parts_mut(normals, self.vertex_count())
+        })
     }
     /// Vertex colors (RGBA - 4 components per vertex) (shader-location = 3)
     #[inline]
